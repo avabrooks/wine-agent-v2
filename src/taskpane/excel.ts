@@ -64,6 +64,15 @@ async function createTableFromUsedRange(
 
   const table = sheet.tables.add(dataRange, true);
   table.name = "WineList";
+
+  // Excel applies its own default banded-blue style to any newly created
+  // Table — that's Excel's behavior on tables.add(), not something we asked
+  // for. Since we auto-created this table on the user's behalf (they didn't
+  // press Ctrl+T themselves), reset it to "no style" so filtering/sorting
+  // works without silently reformatting their sheet. A table the user
+  // already made themselves is left completely alone (see getFirstTable).
+  table.style = "TableStyleNone";
+
   table.load("items");
   await context.sync();
 
