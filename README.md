@@ -25,7 +25,7 @@ Type something like:
 
 ## For users: installing this add-in
 
-If someone sent you a `manifest.xml` file to try this out, see **[MAC_INSTALL.md](./MAC_INSTALL.md)** for step-by-step setup instructions (Mac).
+If someone sent you a `manifest.xml` file to try this out, see **[MAC_INSTALL.md](./MAC_INSTALL.md)** (Mac) or **[WINDOWS_INSTALL.md](./WINDOWS_INSTALL.md)** (Windows) for step-by-step setup instructions.
 
 ## For developers
 
