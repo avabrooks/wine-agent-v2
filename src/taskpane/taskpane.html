@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Brooklyn Wine Club</title>
+
+    <script
+        type="text/javascript"
+        src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js">
+    </script>
+
+    <link
+        href="taskpane.css"
+        rel="stylesheet"
+        type="text/css" />
+</head>
+
+<body>
+
+    <div class="app">
+
+        <div class="hero">
+
+            <img class="logo" src="../../assets/bkwine.png" alt="Brooklyn Wine Club" />
+
+            <h1>AI Wine Agent</h1>
+
+            <div class="subtitle">Brooklyn Wine Club</div>
+
+        </div>
+
+        <div class="input-section">
+
+            <label class="section-label">
+                Sort + Search Wines
+            </label>
+
+            <textarea
+                id="promptInput"
+                placeholder="Try:&#10;French reds under $3,000&#10;Steak wines under $40,000">
+            </textarea>
+
+            <button id="applyBtn">
+                Apply
+            </button>
+
+            <button id="clearBtn" class="secondary-btn">
+                Clear Filters
+            </button>
+
+        </div>
+
+        <div
+            id="status"
+            class="status-card">
+
+            Ready to explore your collection
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>
