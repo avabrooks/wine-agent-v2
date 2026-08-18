@@ -31,9 +31,6 @@ This adds the wine-sorting assistant to your copy of Excel. You only need to do 
 - Click **Clear Filters** any time to bring back the full list.
 - Your spreadsheet needs to have your wine data set up as a proper Excel **Table** (with the little filter arrows in the header row) for this to work — if you're starting from scratch, select your data and press **⌘ + T** to make it a table first.
 
-## If it stops showing up
-
-Occasionally Excel's cache forgets about sideloaded add-ins (this can happen after an Excel update, or just over time). If that happens, just repeat steps 3–6 above with the same `manifest.xml` file — it takes 30 seconds.
 
 ## Troubleshooting
 
