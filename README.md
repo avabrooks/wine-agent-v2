@@ -4,20 +4,17 @@
 
 ## What this is
 
-This is a tool that lets someone type a plain-English request — like "red wines under $50"
-or "something great with steak" — into a spreadsheet of wine data, and have it instantly
-filter and sort to match. No formulas, no digging through dropdown menus, no memorizing
-which column holds what. Type what you're looking for, and it does the rest.
+This is a tool that lets someone type a plain-English request into a spreadsheet of wine data, and have it instantly
+filter and sort to match. 
 
 Right now it lives inside Excel as an add-in: open a wine list in Excel, click a button in
 the sidebar, type a request, and the list filters and sorts itself.
 
-It also works on wine lists that aren't laid out the same way — different column names,
-different formatting — so it isn't tied to one specific spreadsheet template.
 
 ## Try it
 
-If someone sent you this to try out, see:
+See:
+
 - **[MAC_INSTALL.md](./MAC_INSTALL.md)** — setup steps for Mac
 - **[WINDOWS_INSTALL.md](./WINDOWS_INSTALL.md)** — setup steps for Windows
 
@@ -37,11 +34,10 @@ Things to try typing once it's running:
 - Works on pretty much any wine spreadsheet — if the sheet isn't already formatted as a table, it sets that up automatically, and it recognizes a wide range of column names on its own (`Bottle`, `Retail $`, `Critic Score`, `Varietal`, and more)
 - Recognizes roughly 30 wine-producing countries and 7 wine styles (red, white, rosé, sparkling, dessert, fortified, orange) by name
 - Warns you if a price or rating column is stored as text (like `"$45.00"`) instead of a real number, since that can quietly break filtering
-- Never rewrites or reformats your data — it only shows/hides and reorders rows, exactly like using Excel's own filter dropdowns by hand
-
+- Never rewrites or reformats your data — it only shows/hides and reorders rows, exactly like using Excel's own filter dropdowns by han
 ## Where this could go
 
-Right now, this only works inside a spreadsheet — someone needs the wine list open in
+Right now, this only works inside a spreadsheet, someone needs the wine list open in
 Excel for it to do anything. But the part of it that actually understands wine (what
 "steak wine" means, which countries and styles it recognizes, how to read a plain-English
 request) doesn't know or care that it's running inside Excel. That's just where it happens
@@ -54,22 +50,12 @@ outside of Excel entirely:
 - **A page on Brooklyn Wine Club's website** where a customer describes what they're
   looking for — "something for a dinner party, not too expensive" — and gets real
   suggestions pulled from current inventory, instead of browsing a long list.
-- **A tool for staff on the floor or at checkout**, so anyone working that day can quickly
-  answer "what do we have like this?" or "what pairs with X?" without needing to be
-  comfortable in a spreadsheet.
 - **A place for customers to save notes on wines they've tried** ("loved this, too tannic
   for my taste," "buy again for the holidays") and get suggestions based on what they've
   actually liked before — turning this from a one-time lookup into something that
   remembers a person's taste over time.
 - **Recommendations built into a newsletter or loyalty program**, surfacing new arrivals
   based on someone's past purchases or saved notes.
-
-None of that means starting over. The logic for what "steak wine" means, which countries
-and styles and pairings it recognizes, and how it reads a plain-English request is already
-written and tested — it would just need a different front door than an Excel sidebar.
-Getting there is really two things: building a website or app interface in place of the
-Excel task pane, and adding somewhere to actually store people's notes and preferences over
-time, since a spreadsheet isn't built for that but a small database is a natural fit.
 
 ## For developers
 
