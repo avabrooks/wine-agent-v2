@@ -45,6 +45,21 @@ function wordMatch(promptLower: string, value: string): boolean {
   return re.test(promptLower);
 }
 
+const NEGATION_CUES = "(?:not|no|except|excluding|other than|aside from|besides)";
+
+// True when a negation cue phrase sits directly in front of this specific
+// term — "not from the US", "no French wines", "excluding sparkling",
+// "besides Malbec", "non-Italian" — rather than just "does a negation word
+// appear anywhere in the prompt". Scoping it to the term itself means a
+// prompt that both includes one value and excludes another in the same
+// field ("red, not sparkling") resolves each independently.
+function isNegated(promptLower: string, term: string): boolean {
+  const t = escapeRegex(term.toLowerCase());
+  const cueBefore = new RegExp("\\b" + NEGATION_CUES + "\\s+(?:from\\s+|the\\s+|a\\s+|an\\s+)*" + t + "\\b");
+  const nonPrefixed = new RegExp("\\bnon-?\\s*" + t + "\\b");
+  return cueBefore.test(promptLower) || nonPrefixed.test(promptLower);
+}
+
 // Strips punctuation/currency symbols down to letters, digits, spaces and a
 // couple of separators, so "Retail Price (USD)" and "retail-price" both
 // normalize to something comparable against the synonym lists.
@@ -176,10 +191,15 @@ export function parseAndApply(headers: any[], originalRows: any[][], prompt: str
   // ---- Type / color ----
   if (colMap.type) {
     const matchedCanon: string[] = [];
+    const excludedCanon: string[] = [];
     for (const canon in TYPE_SYNONYMS) {
-      if (TYPE_SYNONYMS[canon].some((syn) => wordMatch(p, syn))) matchedCanon.push(canon);
+      const syns = TYPE_SYNONYMS[canon];
+      if (syns.some((syn) => wordMatch(p, syn))) {
+        if (syns.some((syn) => isNegated(p, syn))) excludedCanon.push(canon);
+        else matchedCanon.push(canon);
+      }
     }
-    if (matchedCanon.length) {
+    if (matchedCanon.length || excludedCanon.length) {
       const dataTypes = uniqueValues(originalRows, colMap.type);
       const canonToActual: Record<string, string> = {};
       dataTypes.forEach((dt) => {
@@ -189,10 +209,20 @@ export function parseAndApply(headers: any[], originalRows: any[][], prompt: str
         }
       });
       const actualMatches = [...new Set(matchedCanon.map((c) => canonToActual[c]).filter(Boolean))];
-      if (actualMatches.length) {
-        rows = rows.filter((r) => actualMatches.includes(String(r[colMap.type.index])));
-        plan.valuesFilters.push({ column: colMap.type.name, values: actualMatches });
-        notes.push(`Type: ${actualMatches.join(" or ")}`);
+      const actualExcluded = [...new Set(excludedCanon.map((c) => canonToActual[c]).filter(Boolean))];
+      const base = actualMatches.length ? actualMatches : dataTypes;
+      const keep = base.filter((t) => !actualExcluded.includes(t));
+
+      if (keep.length) {
+        rows = rows.filter((r) => keep.includes(String(r[colMap.type.index])));
+        plan.valuesFilters.push({ column: colMap.type.name, values: keep });
+        if (actualMatches.length && actualExcluded.length) {
+          notes.push(`Type: ${actualMatches.join(" or ")} (not ${actualExcluded.join(" or ")})`);
+        } else if (actualExcluded.length) {
+          notes.push(`Type: not ${actualExcluded.join(" or ")}`);
+        } else {
+          notes.push(`Type: ${actualMatches.join(" or ")}`);
+        }
         hadDirectType = true;
       }
     }
@@ -202,43 +232,82 @@ export function parseAndApply(headers: any[], originalRows: any[][], prompt: str
   if (colMap.country) {
     const dataCountries = uniqueValues(originalRows, colMap.country);
     const matchedCountryNames: string[] = [];
+    const excludedCountryNames: string[] = [];
     for (const canonCountry in COUNTRY_SYNONYMS) {
-      if (COUNTRY_SYNONYMS[canonCountry].some((syn) => wordMatch(p, syn))) {
+      const syns = COUNTRY_SYNONYMS[canonCountry];
+      if (syns.some((syn) => wordMatch(p, syn))) {
         const actual = dataCountries.find((c) => c.toLowerCase() === canonCountry.toLowerCase());
-        if (actual) matchedCountryNames.push(actual);
+        if (actual) {
+          if (syns.some((syn) => isNegated(p, syn))) excludedCountryNames.push(actual);
+          else matchedCountryNames.push(actual);
+        }
       }
     }
-    if (!matchedCountryNames.length) {
+    if (!matchedCountryNames.length && !excludedCountryNames.length) {
       dataCountries.forEach((c) => {
-        if (wordMatch(p, c)) matchedCountryNames.push(c);
+        if (wordMatch(p, c)) {
+          if (isNegated(p, c)) excludedCountryNames.push(c);
+          else matchedCountryNames.push(c);
+        }
       });
     }
-    if (matchedCountryNames.length) {
-      rows = rows.filter((r) => matchedCountryNames.includes(String(r[colMap.country.index])));
-      plan.valuesFilters.push({ column: colMap.country.name, values: matchedCountryNames });
-      notes.push(`Country: ${matchedCountryNames.join(" or ")}`);
+    const countryBase = matchedCountryNames.length ? matchedCountryNames : dataCountries;
+    const countryKeep = countryBase.filter((c) => !excludedCountryNames.includes(c));
+
+    if (countryKeep.length && (matchedCountryNames.length || excludedCountryNames.length)) {
+      rows = rows.filter((r) => countryKeep.includes(String(r[colMap.country.index])));
+      plan.valuesFilters.push({ column: colMap.country.name, values: countryKeep });
+      if (matchedCountryNames.length && excludedCountryNames.length) {
+        notes.push(`Country: ${matchedCountryNames.join(" or ")} (not ${excludedCountryNames.join(" or ")})`);
+      } else if (excludedCountryNames.length) {
+        notes.push(`Country: not ${excludedCountryNames.join(" or ")}`);
+      } else {
+        notes.push(`Country: ${matchedCountryNames.join(" or ")}`);
+      }
     }
   }
 
   // ---- Region ----
   if (colMap.region) {
     const regions = uniqueValues(originalRows, colMap.region);
-    const matched = regions.filter((rgn) => wordMatch(p, rgn));
-    if (matched.length) {
-      rows = rows.filter((r) => matched.includes(String(r[colMap.region.index])));
-      plan.valuesFilters.push({ column: colMap.region.name, values: matched });
-      notes.push(`Region: ${matched.join(" or ")}`);
+    const matched = regions.filter((rgn) => wordMatch(p, rgn) && !isNegated(p, rgn));
+    const excluded = regions.filter((rgn) => wordMatch(p, rgn) && isNegated(p, rgn));
+    const base = matched.length ? matched : regions;
+    const keep = base.filter((rgn) => !excluded.includes(rgn));
+
+    if (keep.length && (matched.length || excluded.length)) {
+      rows = rows.filter((r) => keep.includes(String(r[colMap.region.index])));
+      plan.valuesFilters.push({ column: colMap.region.name, values: keep });
+      if (matched.length && excluded.length) {
+        notes.push(`Region: ${matched.join(" or ")} (not ${excluded.join(" or ")})`);
+      } else if (excluded.length) {
+        notes.push(`Region: not ${excluded.join(" or ")}`);
+      } else {
+        notes.push(`Region: ${matched.join(" or ")}`);
+      }
     }
   }
 
   // ---- Grape ----
   if (colMap.grape) {
     const grapes = uniqueValues(originalRows, colMap.grape);
-    const matched = grapes.filter((g) => wordMatch(p, g) || wordMatch(p, g.split(" ")[0]));
-    if (matched.length) {
-      rows = rows.filter((r) => matched.includes(String(r[colMap.grape.index])));
-      plan.valuesFilters.push({ column: colMap.grape.name, values: matched });
-      notes.push(`Grape: ${matched.join(" or ")}`);
+    const grapeHit = (g: string) => wordMatch(p, g) || wordMatch(p, g.split(" ")[0]);
+    const grapeNegated = (g: string) => isNegated(p, g) || isNegated(p, g.split(" ")[0]);
+    const matched = grapes.filter((g) => grapeHit(g) && !grapeNegated(g));
+    const excluded = grapes.filter((g) => grapeHit(g) && grapeNegated(g));
+    const base = matched.length ? matched : grapes;
+    const keep = base.filter((g) => !excluded.includes(g));
+
+    if (keep.length && (matched.length || excluded.length)) {
+      rows = rows.filter((r) => keep.includes(String(r[colMap.grape.index])));
+      plan.valuesFilters.push({ column: colMap.grape.name, values: keep });
+      if (matched.length && excluded.length) {
+        notes.push(`Grape: ${matched.join(" or ")} (not ${excluded.join(" or ")})`);
+      } else if (excluded.length) {
+        notes.push(`Grape: not ${excluded.join(" or ")}`);
+      } else {
+        notes.push(`Grape: ${matched.join(" or ")}`);
+      }
       hadDirectGrape = true;
     }
   }
